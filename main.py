@@ -5,7 +5,7 @@ import json
 
 app = FastAPI()
 
-# 1. 관리자님의 구글 웹 앱 URL (배포 후 주소 확인 필수)
+# 1. 관리자님의 구글 웹 앱 URL (최신 배포 버전 확인!)
 GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcZFITI2cO_3tC7wwfgMNu4h4oJyVMp766MjjVoScuwFkBJO85c6XommRWMaIjx7OP/exec"
 
 # 2. 로그인 사용자 정보
@@ -33,7 +33,7 @@ HTML_CONTENT = """
         .error-border { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         .valid-border { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
         #toast {
-            position: fixed; top: 0; left: 0; width: 100%; background: #003366; color: white;
+            position: fixed; top: 0; left: 0; w: 100%; width:100%; background: #003366; color: white;
             padding: 12px; text-align: center; font-weight: bold; transform: translateY(-100%);
             transition: transform 0.3s; z-index: 10000;
         }
@@ -57,19 +57,16 @@ HTML_CONTENT = """
 
         <div id="mainSection" class="hidden">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <h2 class="text-lg font-bold text-blue-900 tracking-tighter uppercase">Samsco Inout</h2>
+                <h2 class="text-lg font-bold text-blue-900 tracking-tighter">SAMSCO 입고</h2>
                 <span id="userInfo" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
             </div>
 
             <div id="dynamicRows" class="space-y-2"></div>
 
-            <button id="submitBtn" onclick="submitAll()" disabled style="opacity: 0.4" 
-                class="w-full samsco-blue text-white py-4 mt-6 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all">
-                일괄 전송하기
-            </button>
+            <button id="submitBtn" onclick="submitAll()" class="w-full samsco-blue text-white py-4 mt-6 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all">일괄 전송하기</button>
             
             <div class="mt-8 border-t pt-4">
-                <h3 class="font-bold text-gray-400 mb-3 text-[10px] uppercase tracking-widest px-1">최근 전송 내역</h3>
+                <h3 class="font-bold text-gray-500 mb-3 text-[10px] uppercase tracking-widest px-1">최근 전송 내역</h3>
                 <div id="historyList" class="space-y-2"></div>
             </div>
         </div>
@@ -78,11 +75,10 @@ HTML_CONTENT = """
     <script>
         let currentUser = "";
         let validStatus = [false, false, false, false, false];
-        let searchTimers = [null, null, null, null, null];
+        let searchTimers = [null, null, null, null, null]; // 디바운싱용 타이머
         const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
         const userCredentials = USER_DATA_PLACEHOLDER;
 
-        // 콤팩트 디자인 행 생성
         const rowsDiv = document.getElementById('dynamicRows');
         for(let i=1; i<=5; i++) {
             rowsDiv.innerHTML += `
@@ -91,7 +87,7 @@ HTML_CONTENT = """
                         <span class="text-[10px] font-bold text-gray-300 w-3">${i}</span>
                         <input type="text" placeholder="품번" oninput="handleInput(${i-1}, this)" 
                             class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
-                        <input type="number" placeholder="수량" oninput="updateSubmitButton()"
+                        <input type="number" placeholder="수량" 
                             class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
                     </div>
                     <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
@@ -103,21 +99,23 @@ HTML_CONTENT = """
             const id = document.getElementById('userId').value;
             const pw = document.getElementById('userPw').value;
             if(userCredentials[id] && userCredentials[id][0] === pw) {
+                // "관리자" 뒤에 "님"을 붙여서 표시
                 currentUser = userCredentials[id][1];
                 document.getElementById('userInfo').innerText = currentUser + "님";
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('mainSection').classList.remove('hidden');
-                updateSubmitButton(); // 로그인 직후 버튼 상태 초기화
-            } else { alert("로그인 정보를 확인하세요."); }
+            } else { alert("정보가 일치하지 않습니다."); }
         }
 
         function handleInput(idx, el) {
+            // 기존 타이머 취소 (디바운싱: 오타 수정 중 서버 호출 방지)
             clearTimeout(searchTimers[idx]);
             const val = el.value.trim();
             const infoDiv = document.getElementById(\`info-\${idx}\`);
 
             if(val.length >= 4) {
                 infoDiv.innerText = "조회 중...";
+                // 0.5초 뒤에 조회 실행
                 searchTimers[idx] = setTimeout(() => {
                     checkPart(val, idx, el);
                 }, 500);
@@ -151,39 +149,21 @@ HTML_CONTENT = """
                 }
             } catch(e) { 
                 infoDiv.innerText = "통신오류 (URL 확인)"; 
+                infoDiv.style.color = "#ef4444";
             }
             updateSubmitButton();
         }
 
-        // 버튼 활성화 로직 강화
         function updateSubmitButton() {
             const parts = document.querySelectorAll('.part-input');
-            const qtys = document.querySelectorAll('.qty-input');
-            let canSubmit = false;
-            let hasError = false;
-
+            let hasInvalid = false;
             parts.forEach((input, idx) => {
-                const pVal = input.value.trim();
-                const qVal = qtys[idx].value.trim();
-
-                if (pVal.length > 0 || qVal.length > 0) {
-                    // 품번이 유효하지 않거나 수량이 없으면 에러
-                    if (!validStatus[idx] || qVal.length === 0) {
-                        hasError = true;
-                    } else {
-                        canSubmit = true; // 유효한 세트가 하나라도 있음
-                    }
-                }
+                const val = input.value.trim();
+                if(val.length > 0 && !validStatus[idx]) hasInvalid = true;
             });
-
             const btn = document.getElementById('submitBtn');
-            if (canSubmit && !hasError) {
-                btn.disabled = false;
-                btn.style.opacity = "1";
-            } else {
-                btn.disabled = true;
-                btn.style.opacity = "0.4";
-            }
+            btn.disabled = hasInvalid;
+            btn.style.opacity = hasInvalid ? "0.4" : "1";
         }
 
         async function submitAll() {
@@ -211,7 +191,6 @@ HTML_CONTENT = """
                 addHistory(item.p, item.q, uid);
             }
 
-            // 초기화
             parts.forEach((p, idx) => {
                 p.value = ''; qtys[idx].value = '';
                 document.getElementById(\`info-\${idx}\`).innerText = "4자리 이상 입력 시 조회";
@@ -249,3 +228,10 @@ HTML_CONTENT = """
     </script>
 </body>
 </html>
+"""
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    res_html = HTML_CONTENT.replace("SCRIPT_URL_PLACEHOLDER", GOOGLE_SCRIPT_URL)
+    res_html = res_html.replace("USER_DATA_PLACEHOLDER", json.dumps(USERS))
+    return res_html
