@@ -21,7 +21,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAMSCO Inventory</title>
+    <title>SAMSCO 창고 입고 등록 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .samsco-blue { background-color: #003366; }
@@ -49,15 +49,15 @@ HTML_CONTENT = """
 
     <div class="max-w-md mx-auto p-4">
         <div id="loginSection" class="bg-white mt-10 p-8 rounded-2xl shadow-xl border border-gray-100">
-            <h1 class="text-2xl font-black text-center text-blue-900 mb-8 uppercase tracking-tighter">Samsco Login</h1>
+            <h1 class="text-xl font-black text-center text-blue-900 mb-8 tracking-tighter">SAMSCO 창고 입고 등록 시스템</h1>
             <input type="text" id="userId" placeholder="아이디" class="w-full p-4 mb-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             <input type="password" id="userPw" placeholder="비밀번호" class="w-full p-4 mb-8 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg">접속하기</button>
+            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95">접속하기</button>
         </div>
 
         <div id="mainSection" class="hidden">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <h2 class="text-lg font-bold text-blue-900 tracking-tighter uppercase">Samsco Inout</h2>
+                <h2 class="text-md font-bold text-blue-900 tracking-tighter">SAMSCO 창고 입고 등록</h2>
                 <span id="userInfo" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
             </div>
 
@@ -88,13 +88,13 @@ HTML_CONTENT = """
             rowsDiv.innerHTML += `
                 <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-gray-300 w-3">${i}</span>
-                        <input type="text" placeholder="품번" oninput="handleInput(${i-1}, this)" 
+                        <span class="text-[10px] font-bold text-gray-300 w-3">\${i}</span>
+                        <input type="text" placeholder="품번" oninput="handleInput(\${i-1}, this)" 
                             class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
                         <input type="number" placeholder="수량" oninput="updateSubmitButton()"
                             class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
                     </div>
-                    <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
+                    <div id="info-\${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
                 </div>
             `;
         }
@@ -107,7 +107,7 @@ HTML_CONTENT = """
                 document.getElementById('userInfo').innerText = currentUser + "님";
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('mainSection').classList.remove('hidden');
-                updateSubmitButton(); // 로그인 직후 버튼 상태 초기화
+                updateSubmitButton();
             } else { alert("로그인 정보를 확인하세요."); }
         }
 
@@ -155,7 +155,6 @@ HTML_CONTENT = """
             updateSubmitButton();
         }
 
-        // 버튼 활성화 로직 강화
         function updateSubmitButton() {
             const parts = document.querySelectorAll('.part-input');
             const qtys = document.querySelectorAll('.qty-input');
@@ -167,11 +166,10 @@ HTML_CONTENT = """
                 const qVal = qtys[idx].value.trim();
 
                 if (pVal.length > 0 || qVal.length > 0) {
-                    // 품번이 유효하지 않거나 수량이 없으면 에러
                     if (!validStatus[idx] || qVal.length === 0) {
                         hasError = true;
                     } else {
-                        canSubmit = true; // 유효한 세트가 하나라도 있음
+                        canSubmit = true;
                     }
                 }
             });
@@ -211,7 +209,7 @@ HTML_CONTENT = """
                 addHistory(item.p, item.q, uid);
             }
 
-            // 초기화
+            // 전송 후 입력칸 초기화
             parts.forEach((p, idx) => {
                 p.value = ''; qtys[idx].value = '';
                 document.getElementById(\`info-\${idx}\`).innerText = "4자리 이상 입력 시 조회";
@@ -232,13 +230,16 @@ HTML_CONTENT = """
         function addHistory(part, qty, uid) {
             const list = document.getElementById('historyList');
             const id = 'hist-' + uid;
-            list.insertAdjacentHTML('afterbegin', \`
+            list.insertAdjacentHTML('afterbegin', `
                 <div id="\${id}" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm animate-pulse">
                     <span class="font-bold text-slate-700">\${part} <span class="text-gray-400 font-normal">(\${qty}개)</span></span>
                     <button onclick="cancelItem('\${uid}', '\${id}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button>
                 </div>
-            \`);
-            setTimeout(() => { document.getElementById(id).classList.remove('animate-pulse'); }, 1000);
+            `);
+            setTimeout(() => { 
+                const el = document.getElementById(id);
+                if(el) el.classList.remove('animate-pulse'); 
+            }, 1000);
         }
 
         async function cancelItem(uid, divId) {
@@ -249,3 +250,10 @@ HTML_CONTENT = """
     </script>
 </body>
 </html>
+"""
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    res_html = HTML_CONTENT.replace("SCRIPT_URL_PLACEHOLDER", GOOGLE_SCRIPT_URL)
+    res_html = res_html.replace("USER_DATA_PLACEHOLDER", json.dumps(USERS))
+    return res_html
