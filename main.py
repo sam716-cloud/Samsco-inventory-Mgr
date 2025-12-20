@@ -11,17 +11,17 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMCO 재고관리 시스템</title>
+    <title>SAMSCO 재고관리 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; font-family: 'Apple SD Gothic Neo', sans-serif; }
-        .samco-blue { background-color: #003366; } /* 삼현철강 느낌의 짙은 네이비 */
+        .samsco-blue { background-color: #003366; } /* 삼현철강 느낌의 짙은 네이비 */
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-        <div class="samco-blue p-8 text-white text-center">
-            <h1 class="text-3xl font-extrabold tracking-tight">SAMCO</h1>
+        <div class="samsco-blue p-8 text-white text-center">
+            <h1 class="text-3xl font-extrabold tracking-tight">SAMSCO</h1>
             <p class="text-blue-200 mt-2 font-medium">실시간 입고 등록 시스템</p>
         </div>
         
@@ -37,7 +37,7 @@ HTML_CONTENT = """
                     class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-all text-lg">
             </div>
             <button type="submit" 
-                class="w-full samco-blue hover:bg-blue-800 text-white font-bold py-5 rounded-2xl text-xl shadow-lg transform active:scale-95 transition-all">
+                class="w-full samsco-blue hover:bg-blue-800 text-white font-bold py-5 rounded-2xl text-xl shadow-lg transform active:scale-95 transition-all">
                 데이터 전송하기
             </button>
         </form>
