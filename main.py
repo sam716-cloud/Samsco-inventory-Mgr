@@ -21,7 +21,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAMSCO 창고 입고 등록 시스템</title>
+    <title>SAMSCO Inventory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .samsco-blue { background-color: #003366; }
@@ -49,22 +49,25 @@ HTML_CONTENT = """
 
     <div class="max-w-md mx-auto p-4">
         <div id="loginSection" class="bg-white mt-10 p-8 rounded-2xl shadow-xl border border-gray-100">
-            <h1 class="text-xl font-black text-center text-blue-900 mb-8 tracking-tighter">SAMSCO 창고 입고 등록 시스템</h1>
+            <h1 class="text-2xl font-black text-center text-blue-900 mb-8 uppercase tracking-tighter">Samsco Login</h1>
             <input type="text" id="userId" placeholder="아이디" class="w-full p-4 mb-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             <input type="password" id="userPw" placeholder="비밀번호" class="w-full p-4 mb-8 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95">접속하기</button>
+            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg">접속하기</button>
         </div>
 
         <div id="mainSection" class="hidden">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <h2 class="text-md font-bold text-blue-900 tracking-tighter">SAMSCO 창고 입고 등록</h2>
+                <h2 class="text-lg font-bold text-blue-900 tracking-tighter uppercase">Samsco Inout</h2>
                 <span id="userInfo" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
             </div>
+
             <div id="dynamicRows" class="space-y-2"></div>
+
             <button id="submitBtn" onclick="submitAll()" disabled style="opacity: 0.4" 
                 class="w-full samsco-blue text-white py-4 mt-6 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all">
                 일괄 전송하기
             </button>
+            
             <div class="mt-8 border-t pt-4">
                 <h3 class="font-bold text-gray-400 mb-3 text-[10px] uppercase tracking-widest px-1">최근 전송 내역</h3>
                 <div id="historyList" class="space-y-2"></div>
@@ -73,36 +76,35 @@ HTML_CONTENT = """
     </div>
 
     <script>
-        var currentUser = "";
-        var validStatus = [false, false, false, false, false];
-        var searchTimers = [null, null, null, null, null];
-        var scriptUrl = "SCRIPT_URL_PLACEHOLDER";
-        var userCredentials = USER_DATA_PLACEHOLDER;
+        let currentUser = "";
+        let validStatus = [false, false, false, false, false];
+        let searchTimers = [null, null, null, null, null];
+        const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
+        const userCredentials = USER_DATA_PLACEHOLDER;
 
-        // 줄 생성
-        var rowsDiv = document.getElementById('dynamicRows');
-        var rowHtml = "";
-        for(var i=1; i<=5; i++) {
-            rowHtml += '<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">' +
-                       '<div class="flex items-center gap-2">' +
-                       '<span class="text-[10px] font-bold text-gray-300 w-3">' + i + '</span>' +
-                       '<input type="text" placeholder="품번" oninput="handleInput(' + (i-1) + ', this)" ' +
-                       'class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">' +
-                       '<input type="number" placeholder="수량" oninput="updateSubmitButton()" ' +
-                       'class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">' +
-                       '</div>' +
-                       '<div id="info-' + (i-1) + '" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>' +
-                       '</div>';
+        const rowsDiv = document.getElementById('dynamicRows');
+        for(let i=1; i<=5; i++) {
+            rowsDiv.innerHTML += `
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-gray-300 w-3">\${i}</span>
+                        <input type="text" placeholder="품번" oninput="handleInput(\${i-1}, this)" 
+                            class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
+                        <input type="number" placeholder="수량" oninput="updateSubmitButton()"
+                            class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
+                    </div>
+                    <div id="info-\${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
+                </div>
+            `;
         }
-        rowsDiv.innerHTML = rowHtml;
 
         function login() {
-            var id = document.getElementById('userId').value;
-            var pw = document.getElementById('userPw').value;
+            const id = document.getElementById('userId').value;
+            const pw = document.getElementById('userPw').value;
             if(userCredentials[id] && userCredentials[id][0] === pw) {
                 currentUser = userCredentials[id][1];
                 document.getElementById('userInfo').innerText = currentUser + "님";
-                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('mainSection').classList.remove('hidden');
                 updateSubmitButton();
             } else { alert("로그인 정보를 확인하세요."); }
@@ -110,11 +112,14 @@ HTML_CONTENT = """
 
         function handleInput(idx, el) {
             clearTimeout(searchTimers[idx]);
-            var val = el.value.trim();
-            var infoDiv = document.getElementById('info-' + idx);
+            const val = el.value.trim();
+            const infoDiv = document.getElementById(\`info-\${idx}\`);
+
             if(val.length >= 4) {
                 infoDiv.innerText = "조회 중...";
-                searchTimers[idx] = setTimeout(function() { checkPart(val, idx, el); }, 500);
+                searchTimers[idx] = setTimeout(() => {
+                    checkPart(val, idx, el);
+                }, 500);
             } else {
                 el.classList.remove('error-border', 'valid-border');
                 infoDiv.innerText = "4자리 이상 입력 시 조회";
@@ -125,11 +130,12 @@ HTML_CONTENT = """
         }
 
         async function checkPart(val, idx, el) {
-            var infoDiv = document.getElementById('info-' + idx);
+            const infoDiv = document.getElementById(\`info-\${idx}\`);
             try {
-                var res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
-                var infoText = await res.text();
-                if(infoText.indexOf("❌") !== -1) {
+                const res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
+                const infoText = await res.text();
+                
+                if(infoText.includes("❌")) {
                     el.classList.add('error-border');
                     el.classList.remove('valid-border');
                     infoDiv.innerText = infoText;
@@ -142,53 +148,71 @@ HTML_CONTENT = """
                     infoDiv.style.color = "#16a34a";
                     validStatus[idx] = true;
                 }
-            } catch(e) { infoDiv.innerText = "통신오류"; }
+            } catch(e) { 
+                infoDiv.innerText = "통신오류 (URL 확인)"; 
+            }
             updateSubmitButton();
         }
 
         function updateSubmitButton() {
-            var parts = document.querySelectorAll('.part-input');
-            var qtys = document.querySelectorAll('.qty-input');
-            var canSubmit = false;
-            var hasError = false;
-            for(var i=0; i<parts.length; i++) {
-                var pVal = parts[i].value.trim();
-                var qVal = qtys[i].value.trim();
+            const parts = document.querySelectorAll('.part-input');
+            const qtys = document.querySelectorAll('.qty-input');
+            let canSubmit = false;
+            let hasError = false;
+
+            parts.forEach((input, idx) => {
+                const pVal = input.value.trim();
+                const qVal = qtys[idx].value.trim();
+
                 if (pVal.length > 0 || qVal.length > 0) {
-                    if (!validStatus[i] || qVal.length === 0) { hasError = true; }
-                    else { canSubmit = true; }
+                    if (!validStatus[idx] || qVal.length === 0) {
+                        hasError = true;
+                    } else {
+                        canSubmit = true;
+                    }
                 }
+            });
+
+            const btn = document.getElementById('submitBtn');
+            if (canSubmit && !hasError) {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = "0.4";
             }
-            var btn = document.getElementById('submitBtn');
-            if (canSubmit && !hasError) { btn.disabled = false; btn.style.opacity = "1"; }
-            else { btn.disabled = true; btn.style.opacity = "0.4"; }
         }
 
         async function submitAll() {
-            var parts = document.querySelectorAll('.part-input');
-            var qtys = document.querySelectorAll('.qty-input');
-            var items = [];
-            for(var i=0; i<parts.length; i++) {
+            const parts = document.querySelectorAll('.part-input');
+            const qtys = document.querySelectorAll('.qty-input');
+            let items = [];
+
+            for(let i=0; i<parts.length; i++) {
                 if(parts[i].value.trim() && qtys[i].value.trim()) {
                     items.push({p: parts[i].value.trim(), q: qtys[i].value.trim(), idx: i});
                 }
             }
             if(items.length === 0) return;
+
             document.getElementById('overlay').style.display = 'flex';
-            for(var i=0; i<items.length; i++) {
-                var item = items[i];
-                var uid = Date.now() + "-" + item.idx;
+
+            for(const item of items) {
+                const uid = Date.now() + "-" + item.idx;
                 await fetch(scriptUrl, {
                     method: 'POST', mode: 'no-cors',
-                    body: JSON.stringify({ type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid })
+                    body: JSON.stringify({
+                        type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid
+                    })
                 });
                 addHistory(item.p, item.q, uid);
             }
-            for(var i=0; i<parts.length; i++) {
-                parts[i].value = ''; qtys[i].value = '';
-                document.getElementById('info-' + i).innerText = "4자리 이상 입력 시 조회";
-                parts[i].classList.remove('valid-border', 'error-border');
-            }
+
+            parts.forEach((p, idx) => {
+                p.value = ''; qtys[idx].value = '';
+                document.getElementById(\`info-\${idx}\`).innerText = "4자리 이상 입력 시 조회";
+                p.classList.remove('valid-border', 'error-border');
+            });
             validStatus = [false, false, false, false, false];
             updateSubmitButton();
             document.getElementById('overlay').style.display = 'none';
@@ -196,22 +220,24 @@ HTML_CONTENT = """
         }
 
         function showToast() {
-            var toast = document.getElementById('toast');
+            const toast = document.getElementById('toast');
             toast.style.transform = 'translateY(0)';
-            setTimeout(function() { toast.style.transform = 'translateY(-100%)'; }, 3000);
+            setTimeout(() => { toast.style.transform = 'translateY(-100%)'; }, 3000);
         }
 
         function addHistory(part, qty, uid) {
-            var list = document.getElementById('historyList');
-            var id = 'hist-' + uid;
-            var html = '<div id="' + id + '" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm">' +
-                       '<b>' + part + '</b> (' + qty + '개)' +
-                       '<button onclick="cancelItem(\'' + uid + '\', \'' + id + '\')" class="text-red-400 font-bold px-2 py-1">취소</button></div>';
-            list.insertAdjacentHTML('afterbegin', html);
+            const list = document.getElementById('historyList');
+            const id = 'hist-' + uid;
+            list.insertAdjacentHTML('afterbegin', `
+                <div id="\${id}" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm">
+                    <span class="font-bold text-slate-700">\${part} <span class="text-gray-400 font-normal">(\${qty}개)</span></span>
+                    <button onclick="cancelItem('\${uid}', '\${id}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button>
+                </div>
+            `);
         }
 
         async function cancelItem(uid, divId) {
-            if(!confirm("취소하시겠습니까?")) return;
+            if(!confirm("해당 항목을 취소하시겠습니까?")) return;
             await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: "cancel", uid: uid }) });
             document.getElementById(divId).innerHTML = "<span class='text-gray-300 italic px-2'>취소됨</span>";
         }
