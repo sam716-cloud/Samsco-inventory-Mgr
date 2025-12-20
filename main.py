@@ -1,13 +1,13 @@
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import json
 import os
 
 app = FastAPI()
 
-# 1. 관리자님의 구글 웹 앱 URL
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzD-ov-FfjzzRbxDekEblLPsg1wry1IRad-rOisLoRr_YyBcWlRGKvsuwnmDYMFDgeX/exec"
+# 1. 관리자님의 구글 웹 앱 URL (유지)
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdgn1BjWOh_akIR0ARkWV1wAsV_G1dJf_3zUi1_wlTCZ3M1MSjQSpKpBL8BK1hH3of/exec"
 
 # 2. 로그인 사용자 정보
 USERS = {
@@ -15,10 +15,8 @@ USERS = {
     "임성민": ["1296", "임성민"]
 }
 
-# 3. 서버 메모리 캐시
 ITEM_MASTER = {}
 
-# 서버 시작 시 구글 시트 데이터 로드 (리다이렉트 허용 옵션 포함)
 async def fetch_master_data():
     global ITEM_MASTER
     print("🚀 품목 마스터 데이터를 구글 시트에서 불러오는 중...")
@@ -28,14 +26,20 @@ async def fetch_master_data():
             if response.status_code == 200:
                 ITEM_MASTER = response.json()
                 print(f"✅ 로드 완료! 총 {len(ITEM_MASTER)}개의 품목이 캐시되었습니다.")
-            else:
-                print(f"⚠️ 데이터 로딩 실패. 상태 코드: {response.status_code}")
     except Exception as e:
         print(f"❌ 데이터 로딩 중 오류 발생: {e}")
 
 @app.on_event("startup")
 async def startup_event():
     await fetch_master_data()
+
+# [새 기능] 파이썬 서버가 대신 구글에 포스트하는 Proxy 함수
+@app.post("/proxy-submit")
+async def proxy_submit(request: Request):
+    data = await request.json()
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        res = await client.post(GOOGLE_SCRIPT_URL, json=data)
+        return JSONResponse(content={"status": res.text})
 
 HTML_CONTENT = """
 <!DOCTYPE html>
@@ -86,7 +90,7 @@ HTML_CONTENT = """
             <div id="dynamicRows" class="space-y-1"></div>
 
             <button id="submitBtn" onclick="submitAll()" disabled style="opacity: 0.5;" 
-                class="w-full samsco-blue text-white py-2 mt-2.5 rounded-xl font-bold text-md shadow-md active:scale-95 transition-all">일괄 전송하기</button>
+                class="w-full samsco-blue text-white py-1 mt-2 rounded-xl font-bold text-lg shadow-md active:scale-95 transition-all">입고 등록하기</button>
             
             <p class="text-[12px] text-slate-600 mt-1 px-1 text-center font-medium">
                 ※ 시스템 오류나 품번 조회 불가 시, <span class="font-bold underline">생산관리팀</span>에 문의해 주세요.
@@ -101,12 +105,11 @@ HTML_CONTENT = """
 
     <script>
         let currentUser = "";
-        let validStatus = new Array(8).fill(false); // [변경] 8칸에 맞춰 배열 크기 조정
+        let validStatus = new Array(8).fill(false);
         const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
         const userCredentials = USER_DATA_PLACEHOLDER;
         const itemMaster = ITEM_MASTER_PLACEHOLDER; 
 
-        // [변경] 반복문 8회로 수정
         const rowsDiv = document.getElementById('dynamicRows');
         for(let i=1; i<=8; i++) {
             rowsDiv.innerHTML += `
@@ -116,13 +119,15 @@ HTML_CONTENT = """
                         <div class="relative">
                             <input type="text" id="part-${i-1}" placeholder="품번/뒷자리" maxlength="15" autocomplete="off"
                                 oninput="handleLocalInput(this, ${i-1})" 
-                                class="part-input w-[95px] p-1.5 border rounded-md text-[13px] font-bold uppercase transition-colors">
+                                class="part-input w-[110px] p-1.5 border rounded-md text-[13px] font-bold uppercase transition-colors">
                             <div id="suggest-${i-1}" class="suggest-box"></div>
                         </div>
                         <div id="info-${i-1}" class="flex-1 text-[15px] font-bold text-slate-600 truncate px-1 italic">0/8</div>
                         <div class="flex items-center border rounded-md bg-gray-50 overflow-hidden">
                             <button onclick="adjustQty(${i-1}, -1)" class="px-2 py-1 text-gray-400 font-bold border-r hover:bg-gray-100">-</button>
-                            <input type="number" id="qty-${i-1}" placeholder="0" class="qty-input w-[40px] py-1 text-[13px] font-bold text-center outline-none bg-transparent">
+                            <input type="number" id="qty-${i-1}" placeholder="0" min="1" max="5000"
+                            oninput="if(this.value > 5000) this.value = 5000; if(this.value < 0) this.value = 1;"
+                            class="qty-input w-[35px] py-1 text-[13px] font-bold text-center outline-none bg-transparent">
                             <button onclick="adjustQty(${i-1}, 1)" class="px-2 py-1 text-gray-400 font-bold border-l hover:bg-gray-100">+</button>
                         </div>
                     </div>
@@ -143,7 +148,6 @@ HTML_CONTENT = """
 
             if (val.length < 3) { suggestBox.style.display = 'none'; return; }
 
-            // 8자 미만일 때만 추천 목록 표시
             if (val.length < 8) {
                 const keys = Object.keys(itemMaster);
                 const matches = keys.filter(k => k.includes(val)).slice(0, 5);
@@ -153,7 +157,6 @@ HTML_CONTENT = """
                 } else { suggestBox.style.display = 'none'; }
             } else { suggestBox.style.display = 'none'; }
 
-            // 상세 정보 표시
             if (itemMaster[val]) {
                 el.classList.add('valid-border');
                 infoDiv.innerText = itemMaster[val];
@@ -177,7 +180,14 @@ HTML_CONTENT = """
         function adjustQty(idx, val) {
             const input = document.getElementById(`qty-${idx}`);
             let current = parseInt(input.value) || 0;
-            if (current + val >= 0) input.value = current + val;
+            let nextVal = current + val;
+            
+            // 1보다 작아지거나 9999보다 커지지 않게 제한
+            if (nextVal >= 1 && nextVal <= 5000) {
+                input.value = nextVal;
+            } else if (nextVal < 1) {
+                input.value = 1; // 최소값 유지
+            }
         }
 
         function login() {
@@ -206,6 +216,7 @@ HTML_CONTENT = """
             btn.style.opacity = btn.disabled ? "0.5" : "1";
         }
 
+        // [중요 수정] Proxy 서버를 통해 전송하고 실제 성공 응답을 확인
         async function submitAll() {
             const parts = document.querySelectorAll('.part-input'), qtys = document.querySelectorAll('.qty-input');
             let targets = [];
@@ -216,23 +227,41 @@ HTML_CONTENT = """
             }
             if(targets.length === 0) return;
             document.getElementById('overlay').style.display = 'flex';
+            
+            let allSuccess = true;
             for(const item of targets) {
-                const uid = Date.now() + "-" + item.idx;
-                await fetch(scriptUrl, {
-                    method: 'POST', mode: 'no-cors',
-                    body: JSON.stringify({ type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid })
-                });
-                addHistory(item.p, item.q, uid);
+                const uid = Date.now() + "-" + item.idx + "-" + Math.random().toString(36).substr(2, 9);
+                try {
+                    const response = await fetch("/proxy-submit", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid })
+                    });
+                    const result = await response.json();
+                    
+                    if (result.status.includes("Success")) {
+                        addHistory(item.p, item.q, uid);
+                    } else {
+                        allSuccess = false;
+                        alert(item.p + " 전송 실패: " + result.status);
+                    }
+                } catch (err) {
+                    allSuccess = false;
+                    alert(item.p + " 네트워크 오류 발생");
+                }
             }
-            parts.forEach((p, idx) => { 
-                p.value = ''; qtys[idx].value = ''; 
-                document.getElementById(`info-${idx}`).innerText = "0/8"; 
-                p.classList.remove('valid-border', 'error-border'); 
-                validStatus[idx] = false;
-            });
-            updateSubmitButton();
+            
+            if (allSuccess) {
+                parts.forEach((p, idx) => { 
+                    p.value = ''; qtys[idx].value = ''; 
+                    document.getElementById(`info-${idx}`).innerText = "0/8"; 
+                    p.classList.remove('valid-border', 'error-border'); 
+                    validStatus[idx] = false;
+                });
+                updateSubmitButton();
+                showToast();
+            }
             document.getElementById('overlay').style.display = 'none';
-            showToast();
         }
 
         function showToast() {
@@ -241,30 +270,38 @@ HTML_CONTENT = """
             setTimeout(() => { toast.style.transform = 'translateY(-100%)'; }, 3000);
         }
 
-        // [변경] '개' 단위 추가 및 품번/수량 정보를 cancelItem으로 전달
         function addHistory(part, qty, uid) {
             const list = document.getElementById('historyList');
             const id = 'hist-' + uid;
             list.insertAdjacentHTML('afterbegin', `
                 <div id="${id}" class="flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border text-[13px] shadow-sm">
-                    <span class="font-bold text-gray-700">${part} <span class="font-bold text-gray-700 font-normal">(${qty}개)</span></span>
+                    <span class="font-bold text-gray-700">${part} <span class="font-normal">(${qty}개)</span></span>
                     <button onclick="cancelItem('${uid}', '${id}', this, '${part}', '${qty}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-0.5 rounded border border-red-100">취소</button>
                 </div>
             `);
         }
 
-        // [변경] 취소 메시지 상세화 (품번 XX개 취소됨)
         async function cancelItem(uid, divId, btn, part, qty) {
             if(!confirm("취소하시겠습니까?")) return;
-            
-            btn.disabled = true; 
-            btn.style.opacity = "0.5"; 
-            btn.innerText = "취소중..";
+            btn.disabled = true; btn.style.opacity = "0.5"; btn.innerText = "취소중..";
 
-            await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: "cancel", uid: uid }) });
-            
-            // 상세 취소 메시지로 변경
-            document.getElementById(divId).innerHTML = `<span class='text-gray-500 italic px-2 text-[11px] font-medium'>${part} ${qty}개 취소됨</span>`;
+            try {
+                const response = await fetch("/proxy-submit", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: "cancel", uid: uid })
+                });
+                const result = await response.json();
+                if (result.status.includes("Cancelled")) {
+                    document.getElementById(divId).innerHTML = `<span class='text-gray-500 italic px-2 text-[11px] font-medium'>${part} ${qty}개 취소됨</span>`;
+                } else {
+                    alert("취소 실패");
+                    btn.disabled = false; btn.innerText = "취소";
+                }
+            } catch (err) {
+                alert("네트워크 오류");
+                btn.disabled = false; btn.innerText = "취소";
+            }
         }
     </script>
 </body>
