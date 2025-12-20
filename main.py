@@ -6,7 +6,7 @@ import json
 app = FastAPI()
 
 # 1. 관리자님의 구글 웹 앱 URL (배포 후 주소 확인 필수)
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcZFITI2cO_3tC7wwfgMNu4h4oJyVMp766MjjVoScuwFkBJO85c6XommRWMaIjx7OP/exec"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxp-9EGQ8_hOJ32R0m3vAq9aVJdDBBD1EeYa2MGS-Q7YBGoz8yXdrmgHR9iEAEOOIkt/exec"
 
 # 2. 로그인 사용자 정보
 USERS = {
