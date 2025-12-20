@@ -12,7 +12,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMSCO 재고관리 시스템</title>
+    <title>SAMSCO 창고입고 입력 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; font-family: 'Apple SD Gothic Neo', sans-serif; }
