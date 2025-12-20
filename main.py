@@ -228,7 +228,7 @@ HTML_CONTENT = """
             
             let allSuccess = true;
             for(const item of targets) {
-                const uid = Date.now() + "-" + item.idx + "-" + Math.random().toString(36).substr(2, 9);
+                const uid = Date.now() + "-" + item.idx + "-" + Math.floor(Math.random() * 1000);
                 try {
                     const response = await fetch("/proxy-submit", {
                         method: 'POST',
