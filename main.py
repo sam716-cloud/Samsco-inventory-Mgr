@@ -60,14 +60,11 @@ HTML_CONTENT = """
                 <h2 class="text-md font-bold text-blue-900 tracking-tighter">SAMSCO 창고 입고 등록</h2>
                 <span id="userInfo" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
             </div>
-
             <div id="dynamicRows" class="space-y-2"></div>
-
             <button id="submitBtn" onclick="submitAll()" disabled style="opacity: 0.4" 
                 class="w-full samsco-blue text-white py-4 mt-6 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all">
                 일괄 전송하기
             </button>
-            
             <div class="mt-8 border-t pt-4">
                 <h3 class="font-bold text-gray-400 mb-3 text-[10px] uppercase tracking-widest px-1">최근 전송 내역</h3>
                 <div id="historyList" class="space-y-2"></div>
@@ -82,19 +79,18 @@ HTML_CONTENT = """
         const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
         const userCredentials = USER_DATA_PLACEHOLDER;
 
-        // 콤팩트 디자인 행 생성
         const rowsDiv = document.getElementById('dynamicRows');
         for(let i=1; i<=5; i++) {
             rowsDiv.innerHTML += `
                 <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-gray-300 w-3">\${i}</span>
-                        <input type="text" placeholder="품번" oninput="handleInput(\${i-1}, this)" 
+                        <span class="text-[10px] font-bold text-gray-300 w-3">${i}</span>
+                        <input type="text" placeholder="품번" oninput="handleInput(${i-1}, this)" 
                             class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
                         <input type="number" placeholder="수량" oninput="updateSubmitButton()"
                             class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
                     </div>
-                    <div id="info-\${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
+                    <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
                 </div>
             `;
         }
@@ -114,7 +110,7 @@ HTML_CONTENT = """
         function handleInput(idx, el) {
             clearTimeout(searchTimers[idx]);
             const val = el.value.trim();
-            const infoDiv = document.getElementById(\`info-\${idx}\`);
+            const infoDiv = document.getElementById('info-' + idx);
 
             if(val.length >= 4) {
                 infoDiv.innerText = "조회 중...";
@@ -131,11 +127,10 @@ HTML_CONTENT = """
         }
 
         async function checkPart(val, idx, el) {
-            const infoDiv = document.getElementById(\`info-\${idx}\`);
+            const infoDiv = document.getElementById('info-' + idx);
             try {
                 const res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
                 const infoText = await res.text();
-                
                 if(infoText.includes("❌")) {
                     el.classList.add('error-border');
                     el.classList.remove('valid-border');
@@ -149,9 +144,7 @@ HTML_CONTENT = """
                     infoDiv.style.color = "#16a34a";
                     validStatus[idx] = true;
                 }
-            } catch(e) { 
-                infoDiv.innerText = "통신오류 (URL 확인)"; 
-            }
+            } catch(e) { infoDiv.innerText = "통신오류 (URL 확인)"; }
             updateSubmitButton();
         }
 
@@ -160,59 +153,41 @@ HTML_CONTENT = """
             const qtys = document.querySelectorAll('.qty-input');
             let canSubmit = false;
             let hasError = false;
-
             parts.forEach((input, idx) => {
                 const pVal = input.value.trim();
                 const qVal = qtys[idx].value.trim();
-
                 if (pVal.length > 0 || qVal.length > 0) {
-                    if (!validStatus[idx] || qVal.length === 0) {
-                        hasError = true;
-                    } else {
-                        canSubmit = true;
-                    }
+                    if (!validStatus[idx] || qVal.length === 0) { hasError = true; }
+                    else { canSubmit = true; }
                 }
             });
-
             const btn = document.getElementById('submitBtn');
-            if (canSubmit && !hasError) {
-                btn.disabled = false;
-                btn.style.opacity = "1";
-            } else {
-                btn.disabled = true;
-                btn.style.opacity = "0.4";
-            }
+            if (canSubmit && !hasError) { btn.disabled = false; btn.style.opacity = "1"; }
+            else { btn.disabled = true; btn.style.opacity = "0.4"; }
         }
 
         async function submitAll() {
             const parts = document.querySelectorAll('.part-input');
             const qtys = document.querySelectorAll('.qty-input');
             let items = [];
-
             for(let i=0; i<parts.length; i++) {
                 if(parts[i].value.trim() && qtys[i].value.trim()) {
                     items.push({p: parts[i].value.trim(), q: qtys[i].value.trim(), idx: i});
                 }
             }
             if(items.length === 0) return;
-
             document.getElementById('overlay').style.display = 'flex';
-
             for(const item of items) {
                 const uid = Date.now() + "-" + item.idx;
                 await fetch(scriptUrl, {
                     method: 'POST', mode: 'no-cors',
-                    body: JSON.stringify({
-                        type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid
-                    })
+                    body: JSON.stringify({ type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid })
                 });
                 addHistory(item.p, item.q, uid);
             }
-
-            // 전송 후 입력칸 초기화
             parts.forEach((p, idx) => {
                 p.value = ''; qtys[idx].value = '';
-                document.getElementById(\`info-\${idx}\`).innerText = "4자리 이상 입력 시 조회";
+                document.getElementById('info-' + idx).innerText = "4자리 이상 입력 시 조회";
                 p.classList.remove('valid-border', 'error-border');
             });
             validStatus = [false, false, false, false, false];
@@ -230,16 +205,7 @@ HTML_CONTENT = """
         function addHistory(part, qty, uid) {
             const list = document.getElementById('historyList');
             const id = 'hist-' + uid;
-            list.insertAdjacentHTML('afterbegin', `
-                <div id="\${id}" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm animate-pulse">
-                    <span class="font-bold text-slate-700">\${part} <span class="text-gray-400 font-normal">(\${qty}개)</span></span>
-                    <button onclick="cancelItem('\${uid}', '\${id}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button>
-                </div>
-            `);
-            setTimeout(() => { 
-                const el = document.getElementById(id);
-                if(el) el.classList.remove('animate-pulse'); 
-            }, 1000);
+            list.insertAdjacentHTML('afterbegin', '<div id="' + id + '" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm"><b>' + part + '</b> (' + qty + '개)<button onclick="cancelItem(\'' + uid + '\', \'' + id + '\')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button></div>');
         }
 
         async function cancelItem(uid, divId) {
