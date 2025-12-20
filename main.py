@@ -7,7 +7,7 @@ import os
 app = FastAPI()
 
 # 1. 관리자님의 구글 웹 앱 URL (유지)
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdgn1BjWOh_akIR0ARkWV1wAsV_G1dJf_3zUi1_wlTCZ3M1MSjQSpKpBL8BK1hH3of/exec"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzD-ov-FfjzzRbxDekEblLPsg1wry1IRad-rOisLoRr_YyBcWlRGKvsuwnmDYMFDgeX/exec"
 
 # 2. 로그인 사용자 정보
 USERS = {
@@ -33,7 +33,7 @@ async def fetch_master_data():
 async def startup_event():
     await fetch_master_data()
 
-# [새 기능] 파이썬 서버가 대신 구글에 포스트하는 Proxy 함수
+# 파이썬 서버가 대신 구글에 포스트하는 Proxy 함수
 @app.post("/proxy-submit")
 async def proxy_submit(request: Request):
     data = await request.json()
@@ -90,13 +90,13 @@ HTML_CONTENT = """
             <div id="dynamicRows" class="space-y-1"></div>
 
             <button id="submitBtn" onclick="submitAll()" disabled style="opacity: 0.5;" 
-                class="w-full samsco-blue text-white py-1 mt-2 rounded-xl font-bold text-lg shadow-md active:scale-95 transition-all">입고 등록하기</button>
+                class="w-full samsco-blue text-white py-1 rounded-xl font-bold text-lg shadow-md active:scale-95 transition-all mt-2">일괄 전송하기</button>
             
-            <p class="text-[12px] text-slate-600 mt-1 px-1 text-center font-medium">
+            <p class="text-[12px] text-slate-600 mt-2 px-1 text-center font-medium">
                 ※ 시스템 오류나 품번 조회 불가 시, <span class="font-bold underline">생산관리팀</span>에 문의해 주세요.
             </p>
 
-            <div class="mt-1 border-t pt-1 border-gray-500">
+            <div class="mt-2 border-t pt-1 border-gray-500">
                 <h3 class="font-bold text-gray-700 mb-2 text-[11px] uppercase tracking-widest px-1">최근 내역</h3>
                 <div id="historyList" class="space-y-1"></div>
             </div>
@@ -122,7 +122,7 @@ HTML_CONTENT = """
                                 class="part-input w-[110px] p-1.5 border rounded-md text-[13px] font-bold uppercase transition-colors">
                             <div id="suggest-${i-1}" class="suggest-box"></div>
                         </div>
-                        <div id="info-${i-1}" class="flex-1 text-[15px] font-bold text-slate-600 truncate px-1 italic">0/8</div>
+                        <div id="info-${i-1}" class="flex-1 text-[13px] font-bold text-slate-600 truncate px-1 italic">0/8</div>
                         <div class="flex items-center border rounded-md bg-gray-50 overflow-hidden">
                             <button onclick="adjustQty(${i-1}, -1)" class="px-2 py-1 text-gray-400 font-bold border-r hover:bg-gray-100">-</button>
                             <input type="number" id="qty-${i-1}" placeholder="0" min="1" max="5000"
@@ -182,11 +182,10 @@ HTML_CONTENT = """
             let current = parseInt(input.value) || 0;
             let nextVal = current + val;
             
-            // 1보다 작아지거나 9999보다 커지지 않게 제한
             if (nextVal >= 1 && nextVal <= 5000) {
                 input.value = nextVal;
             } else if (nextVal < 1) {
-                input.value = 1; // 최소값 유지
+                input.value = 1; 
             }
         }
 
@@ -216,7 +215,6 @@ HTML_CONTENT = """
             btn.style.opacity = btn.disabled ? "0.5" : "1";
         }
 
-        // [중요 수정] Proxy 서버를 통해 전송하고 실제 성공 응답을 확인
         async function submitAll() {
             const parts = document.querySelectorAll('.part-input'), qtys = document.querySelectorAll('.qty-input');
             let targets = [];
@@ -270,13 +268,20 @@ HTML_CONTENT = """
             setTimeout(() => { toast.style.transform = 'translateY(-100%)'; }, 3000);
         }
 
+        // [수정] 품명 조회 후 상세정보 표시
         function addHistory(part, qty, uid) {
             const list = document.getElementById('historyList');
             const id = 'hist-' + uid;
+            const pName = itemMaster[part] || ""; // 품명 조회
             list.insertAdjacentHTML('afterbegin', `
                 <div id="${id}" class="flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border text-[13px] shadow-sm">
-                    <span class="font-bold text-gray-700">${part} <span class="font-normal">(${qty}개)</span></span>
-                    <button onclick="cancelItem('${uid}', '${id}', this, '${part}', '${qty}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-0.5 rounded border border-red-100">취소</button>
+                    <div class="flex flex-col leading-tight">
+                        <span class="font-bold text-gray-700">
+                            ${part} <span class="text-[11px] text-gray-400 font-normal ml-1">${pName}</span>
+                        </span>
+                        <span class="text-[11px] text-blue-600 font-bold mt-0.5">${qty}개 등록완료</span>
+                    </div>
+                    <button onclick="cancelItem('${uid}', '${id}', this, '${part}', '${qty}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded border border-red-100 text-[11px]">취소</button>
                 </div>
             `);
         }
@@ -293,7 +298,15 @@ HTML_CONTENT = """
                 });
                 const result = await response.json();
                 if (result.status.includes("Cancelled")) {
-                    document.getElementById(divId).innerHTML = `<span class='text-gray-500 italic px-2 text-[11px] font-medium'>${part} ${qty}개 취소됨</span>`;
+                    const pName = itemMaster[part] || "";
+                    document.getElementById(divId).innerHTML = `
+                        <div class="flex flex-col leading-tight opacity-50">
+                            <span class="font-bold text-gray-500 line-through">
+                                ${part} <span class="text-[11px] text-gray-400 font-normal ml-1">${pName}</span>
+                            </span>
+                            <span class="text-[10px] text-red-400 font-medium italic">${qty}개 취소됨</span>
+                        </div>
+                    `;
                 } else {
                     alert("취소 실패");
                     btn.disabled = false; btn.innerText = "취소";
