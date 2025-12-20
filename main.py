@@ -12,94 +12,113 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMSCO 창고입고 입력 시스템</title>
+    <title>SAMSCO 창고입고 등록 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f8fafc; font-family: 'Apple SD Gothic Neo', sans-serif; }
+        body { background-color: #f1f5f9; font-family: 'Apple SD Gothic Neo', sans-serif; }
         .samsco-blue { background-color: #003366; }
-        /* 부드러운 색상 변화를 위한 효과 */
         .transition-all { transition: all 0.3s ease; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-        <div class="samsco-blue p-8 text-white text-center">
-            <h1 class="text-3xl font-extrabold tracking-tight">SAMSCO</h1>
-            <p class="text-blue-200 mt-2 font-medium">실시간 입고 등록 시스템</p>
+<body class="flex flex-col items-center min-h-screen p-4 space-y-6">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        <div class="samsco-blue p-6 text-white text-center">
+            <h1 class="text-2xl font-extrabold tracking-tight">SAMSCO</h1>
+            <p class="text-blue-200 text-sm mt-1 font-medium">실시간 입고 등록</p>
         </div>
         
-        <form id="stockForm" class="p-8 space-y-6">
+        <form id="stockForm" class="p-6 space-y-4">
             <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">📦 품번 (8자리 권장)</label>
+                <label class="block text-sm font-bold text-gray-700 mb-1">📦 품번 (8자리)</label>
                 <input type="text" id="part_number" required placeholder="품번 입력" 
-                    class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none transition-all text-lg">
-                <p id="length_hint" class="text-xs mt-2 text-gray-400 font-medium">현재 글자 수: 0 / 8</p>
+                    class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none transition-all text-lg">
+                <p id="length_hint" class="text-xs mt-1 text-gray-400 font-medium">현재 글자 수: 0 / 8</p>
             </div>
             <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">🔢 수량 (Quantity)</label>
+                <label class="block text-sm font-bold text-gray-700 mb-1">🔢 수량</label>
                 <input type="number" id="quantity" required placeholder="0" 
-                    class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-all text-lg">
+                    class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-all text-lg">
             </div>
             <button type="button" onclick="submitData()"
-                class="w-full samsco-blue hover:bg-blue-800 text-white font-bold py-5 rounded-2xl text-xl shadow-lg transform active:scale-95 transition-all">
+                class="w-full samsco-blue hover:bg-blue-800 text-white font-bold py-4 rounded-2xl text-lg shadow-lg transform active:scale-95 transition-all">
                 데이터 전송하기
             </button>
         </form>
-        <div id="status" class="px-8 pb-6 text-center font-bold hidden"></div>
+    </div>
+
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <span class="mr-2">📝</span> 최근 전송 내역 (방금 보낸 것)
+        </h2>
+        <div id="historyList" class="space-y-3">
+            <p class="text-sm text-gray-400 text-center py-4">아직 전송한 내역이 없습니다.</p>
+        </div>
     </div>
 
     <script>
         const partInput = document.getElementById('part_number');
         const hint = document.getElementById('length_hint');
+        const historyList = document.getElementById('historyList');
 
-        // 실시간 글자 수 체크 로직
-        partInput.addEventListener('input', function(e) {
-            const length = e.target.value.length;
-            hint.innerText = `현재 글자 수: ${length} / 8`;
-
-            if (length === 8) {
+        // 품번 8자리 체크
+        partInput.addEventListener('input', (e) => {
+            const len = e.target.value.length;
+            hint.innerText = `현재 글자 수: ${len} / 8`;
+            if (len === 8) {
                 partInput.classList.replace('border-gray-200', 'border-green-500');
                 partInput.classList.add('bg-green-50');
-                hint.classList.replace('text-gray-400', 'text-green-600');
             } else {
                 partInput.classList.remove('border-green-500', 'bg-green-50');
                 partInput.classList.add('border-gray-200');
-                hint.classList.replace('text-green-600', 'text-gray-400');
             }
         });
 
-        async function submitData() {
-            const part_number = partInput.value;
-            const quantity = document.getElementById('quantity').value;
-            const statusDiv = document.getElementById('status');
+        async function submitData(isCancel = false, cancelPart = '', cancelQty = 0, elementId = '') {
+            const part = isCancel ? cancelPart : partInput.value;
+            const qty = isCancel ? -cancelQty : document.getElementById('quantity').value;
             
-            if(!part_number || !quantity) { alert("품번과 수량을 입력해주세요."); return; }
-
-            statusDiv.innerText = "⏳ 전송 중...";
-            statusDiv.className = "px-8 pb-6 text-center text-blue-600 font-bold";
-            statusDiv.classList.remove('hidden');
+            if(!part || !qty) { alert("데이터를 확인해주세요."); return; }
 
             try {
                 const response = await fetch('/submit', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: new URLSearchParams({ 'part_number': part_number, 'quantity': quantity })
+                    body: new URLSearchParams({ 'part_number': part, 'quantity': qty })
                 });
 
                 if(response.ok) {
-                    statusDiv.innerText = "✅ 저장 완료!";
-                    statusDiv.className = "px-8 pb-6 text-center text-green-600 font-bold";
-                    partInput.value = '';
-                    document.getElementById('quantity').value = '';
-                    // 입력 초기화 시 색상도 초기화
-                    partInput.classList.remove('border-green-500', 'bg-green-50');
-                    partInput.classList.add('border-gray-200');
-                    hint.innerText = "현재 글자 수: 0 / 8";
-                } else { throw new Error(); }
-            } catch (e) {
-                statusDiv.innerText = "❌ 전송 실패";
-                statusDiv.className = "px-8 pb-6 text-center text-red-600 font-bold";
-            }
+                    if(!isCancel) {
+                        addHistory(part, qty);
+                        partInput.value = '';
+                        document.getElementById('quantity').value = '';
+                        partInput.classList.remove('border-green-500', 'bg-green-50');
+                        hint.innerText = "현재 글자 수: 0 / 8";
+                    } else {
+                        document.getElementById(elementId).innerHTML = `<span class="text-red-500 font-bold">취소됨 (-${cancelQty})</span>`;
+                    }
+                }
+            } catch (e) { alert("전송 실패"); }
+        }
+
+        function addHistory(part, qty) {
+            if(historyList.innerHTML.includes("아직 전송한 내역이 없습니다")) historyList.innerHTML = '';
+            
+            const id = 'item-' + Date.now();
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const itemHtml = `
+                <div id="${id}" class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all">
+                    <div>
+                        <div class="font-bold text-gray-800">${part}</div>
+                        <div class="text-xs text-gray-500">${time} · ${qty}개</div>
+                    </div>
+                    <button onclick="submitData(true, '${part}', ${qty}, '${id}')" 
+                        class="text-xs font-bold text-red-500 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50">
+                        취소하기
+                    </button>
+                </div>
+            `;
+            historyList.insertAdjacentHTML('afterbegin', itemHtml);
         }
     </script>
 </body>
