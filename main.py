@@ -73,35 +73,36 @@ HTML_CONTENT = """
     </div>
 
     <script>
-        let currentUser = "";
-        let validStatus = [false, false, false, false, false];
-        let searchTimers = [null, null, null, null, null];
-        const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
-        const userCredentials = USER_DATA_PLACEHOLDER;
+        var currentUser = "";
+        var validStatus = [false, false, false, false, false];
+        var searchTimers = [null, null, null, null, null];
+        var scriptUrl = "SCRIPT_URL_PLACEHOLDER";
+        var userCredentials = USER_DATA_PLACEHOLDER;
 
-        const rowsDiv = document.getElementById('dynamicRows');
-        for(let i=1; i<=5; i++) {
-            rowsDiv.innerHTML += `
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-gray-300 w-3">${i}</span>
-                        <input type="text" placeholder="품번" oninput="handleInput(${i-1}, this)" 
-                            class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
-                        <input type="number" placeholder="수량" oninput="updateSubmitButton()"
-                            class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
-                    </div>
-                    <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
-                </div>
-            `;
+        // 줄 생성
+        var rowsDiv = document.getElementById('dynamicRows');
+        var rowHtml = "";
+        for(var i=1; i<=5; i++) {
+            rowHtml += '<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">' +
+                       '<div class="flex items-center gap-2">' +
+                       '<span class="text-[10px] font-bold text-gray-300 w-3">' + i + '</span>' +
+                       '<input type="text" placeholder="품번" oninput="handleInput(' + (i-1) + ', this)" ' +
+                       'class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">' +
+                       '<input type="number" placeholder="수량" oninput="updateSubmitButton()" ' +
+                       'class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">' +
+                       '</div>' +
+                       '<div id="info-' + (i-1) + '" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>' +
+                       '</div>';
         }
+        rowsDiv.innerHTML = rowHtml;
 
         function login() {
-            const id = document.getElementById('userId').value;
-            const pw = document.getElementById('userPw').value;
+            var id = document.getElementById('userId').value;
+            var pw = document.getElementById('userPw').value;
             if(userCredentials[id] && userCredentials[id][0] === pw) {
                 currentUser = userCredentials[id][1];
                 document.getElementById('userInfo').innerText = currentUser + "님";
-                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('mainSection').classList.remove('hidden');
                 updateSubmitButton();
             } else { alert("로그인 정보를 확인하세요."); }
@@ -109,14 +110,11 @@ HTML_CONTENT = """
 
         function handleInput(idx, el) {
             clearTimeout(searchTimers[idx]);
-            const val = el.value.trim();
-            const infoDiv = document.getElementById('info-' + idx);
-
+            var val = el.value.trim();
+            var infoDiv = document.getElementById('info-' + idx);
             if(val.length >= 4) {
                 infoDiv.innerText = "조회 중...";
-                searchTimers[idx] = setTimeout(() => {
-                    checkPart(val, idx, el);
-                }, 500);
+                searchTimers[idx] = setTimeout(function() { checkPart(val, idx, el); }, 500);
             } else {
                 el.classList.remove('error-border', 'valid-border');
                 infoDiv.innerText = "4자리 이상 입력 시 조회";
@@ -127,11 +125,11 @@ HTML_CONTENT = """
         }
 
         async function checkPart(val, idx, el) {
-            const infoDiv = document.getElementById('info-' + idx);
+            var infoDiv = document.getElementById('info-' + idx);
             try {
-                const res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
-                const infoText = await res.text();
-                if(infoText.includes("❌")) {
+                var res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
+                var infoText = await res.text();
+                if(infoText.indexOf("❌") !== -1) {
                     el.classList.add('error-border');
                     el.classList.remove('valid-border');
                     infoDiv.innerText = infoText;
@@ -144,52 +142,53 @@ HTML_CONTENT = """
                     infoDiv.style.color = "#16a34a";
                     validStatus[idx] = true;
                 }
-            } catch(e) { infoDiv.innerText = "통신오류 (URL 확인)"; }
+            } catch(e) { infoDiv.innerText = "통신오류"; }
             updateSubmitButton();
         }
 
         function updateSubmitButton() {
-            const parts = document.querySelectorAll('.part-input');
-            const qtys = document.querySelectorAll('.qty-input');
-            let canSubmit = false;
-            let hasError = false;
-            parts.forEach((input, idx) => {
-                const pVal = input.value.trim();
-                const qVal = qtys[idx].value.trim();
+            var parts = document.querySelectorAll('.part-input');
+            var qtys = document.querySelectorAll('.qty-input');
+            var canSubmit = false;
+            var hasError = false;
+            for(var i=0; i<parts.length; i++) {
+                var pVal = parts[i].value.trim();
+                var qVal = qtys[i].value.trim();
                 if (pVal.length > 0 || qVal.length > 0) {
-                    if (!validStatus[idx] || qVal.length === 0) { hasError = true; }
+                    if (!validStatus[i] || qVal.length === 0) { hasError = true; }
                     else { canSubmit = true; }
                 }
-            });
-            const btn = document.getElementById('submitBtn');
+            }
+            var btn = document.getElementById('submitBtn');
             if (canSubmit && !hasError) { btn.disabled = false; btn.style.opacity = "1"; }
             else { btn.disabled = true; btn.style.opacity = "0.4"; }
         }
 
         async function submitAll() {
-            const parts = document.querySelectorAll('.part-input');
-            const qtys = document.querySelectorAll('.qty-input');
-            let items = [];
-            for(let i=0; i<parts.length; i++) {
+            var parts = document.querySelectorAll('.part-input');
+            var qtys = document.querySelectorAll('.qty-input');
+            var items = [];
+            for(var i=0; i<parts.length; i++) {
                 if(parts[i].value.trim() && qtys[i].value.trim()) {
                     items.push({p: parts[i].value.trim(), q: qtys[i].value.trim(), idx: i});
                 }
             }
             if(items.length === 0) return;
             document.getElementById('overlay').style.display = 'flex';
-            for(const item of items) {
-                const uid = Date.now() + "-" + item.idx;
+            for(var i=0; i<items.length; i++) {
+                var item = items[i];
+                var uid = Date.now() + "-" + item.idx;
                 await fetch(scriptUrl, {
                     method: 'POST', mode: 'no-cors',
                     body: JSON.stringify({ type: "submit", part_number: item.p, quantity: item.q, worker: currentUser, uid: uid })
                 });
                 addHistory(item.p, item.q, uid);
             }
-            parts.forEach((p, idx) => {
-                p.value = ''; qtys[idx].value = '';
-                document.getElementById('info-' + idx).innerText = "4자리 이상 입력 시 조회";
-                p.classList.remove('valid-border', 'error-border');
-            });
+            for(var i=0; i<parts.length; i++) {
+                parts[i].value = ''; qtys[i].value = '';
+                document.getElementById('info-' + i).innerText = "4자리 이상 입력 시 조회";
+                parts[i].classList.remove('valid-border', 'error-border');
+            }
             validStatus = [false, false, false, false, false];
             updateSubmitButton();
             document.getElementById('overlay').style.display = 'none';
@@ -197,19 +196,22 @@ HTML_CONTENT = """
         }
 
         function showToast() {
-            const toast = document.getElementById('toast');
+            var toast = document.getElementById('toast');
             toast.style.transform = 'translateY(0)';
-            setTimeout(() => { toast.style.transform = 'translateY(-100%)'; }, 3000);
+            setTimeout(function() { toast.style.transform = 'translateY(-100%)'; }, 3000);
         }
 
         function addHistory(part, qty, uid) {
-            const list = document.getElementById('historyList');
-            const id = 'hist-' + uid;
-            list.insertAdjacentHTML('afterbegin', '<div id="' + id + '" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm"><b>' + part + '</b> (' + qty + '개)<button onclick="cancelItem(\'' + uid + '\', \'' + id + '\')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button></div>');
+            var list = document.getElementById('historyList');
+            var id = 'hist-' + uid;
+            var html = '<div id="' + id + '" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm">' +
+                       '<b>' + part + '</b> (' + qty + '개)' +
+                       '<button onclick="cancelItem(\'' + uid + '\', \'' + id + '\')" class="text-red-400 font-bold px-2 py-1">취소</button></div>';
+            list.insertAdjacentHTML('afterbegin', html);
         }
 
         async function cancelItem(uid, divId) {
-            if(!confirm("해당 항목을 취소하시겠습니까?")) return;
+            if(!confirm("취소하시겠습니까?")) return;
             await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: "cancel", uid: uid }) });
             document.getElementById(divId).innerHTML = "<span class='text-gray-300 italic px-2'>취소됨</span>";
         }
