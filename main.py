@@ -292,3 +292,18 @@ HTML_CONTENT = """
 </body>
 </html>
 """
+
+@app.get("/", response_class=HTMLResponse)
+def root():
+    html = HTML_CONTENT.replace(
+        "SCRIPT_URL_PLACEHOLDER", GOOGLE_SCRIPT_URL
+    ).replace(
+        "USER_DATA_PLACEHOLDER", json.dumps(USERS, ensure_ascii=False)
+    )
+    return html
+
+# Render 배포 실행용
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
