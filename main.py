@@ -5,14 +5,13 @@ import json
 
 app = FastAPI()
 
-# 1. 관리자님의 구글 웹 앱 URL (최신 배포 버전 확인!)
+# 1. 관리자님의 구글 웹 앱 URL
 GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcZFITI2cO_3tC7wwfgMNu4h4oJyVMp766MjjVoScuwFkBJO85c6XommRWMaIjx7OP/exec"
 
 # 2. 로그인 사용자 정보
 USERS = {
     "admin": ["1234", "관리자"],
-    "samsco1": ["1111", "홍길동"],
-    "samsco2": ["2222", "김철수"]
+    "samsco1": ["1111", "홍길동"]
 }
 
 HTML_CONTENT = """
@@ -26,33 +25,35 @@ HTML_CONTENT = """
     <style>
         .samsco-blue { background-color: #003366; }
         .hidden { display: none; }
+        /* 로딩 락(Lock) 스타일 */
         #overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.7); z-index: 9999; cursor: not-allowed;
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7);
+            z-index: 9999;
+            cursor: not-allowed;
         }
         .error-border { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         .valid-border { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
-        #toast {
-            position: fixed; top: 0; left: 0; w: 100%; width:100%; background: #003366; color: white;
-            padding: 12px; text-align: center; font-weight: bold; transform: translateY(-100%);
-            transition: transform 0.3s; z-index: 10000;
-        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans antialiased text-slate-900">
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
 
     <div id="overlay" class="flex items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-900"></div>
     </div>
 
-    <div id="toast">등록이 완료되었습니다!</div>
+    <div id="toast" class="fixed top-0 left-0 w-full samsco-blue text-white py-3 text-center font-bold transform -translate-y-full transition-transform duration-300 z-50 shadow-md">
+        등록이 완료되었습니다!
+    </div>
 
     <div class="max-w-md mx-auto p-4">
         <div id="loginSection" class="bg-white mt-10 p-8 rounded-2xl shadow-xl border border-gray-100">
-            <h1 class="text-2xl font-black text-center text-blue-900 mb-8 uppercase tracking-tighter">Samsco Login</h1>
+            <h1 class="text-2xl font-black text-center text-blue-900 mb-8 tracking-tighter uppercase">Samsco Login</h1>
             <input type="text" id="userId" placeholder="아이디" class="w-full p-4 mb-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             <input type="password" id="userPw" placeholder="비밀번호" class="w-full p-4 mb-8 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg">접속하기</button>
+            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all">접속하기</button>
         </div>
 
         <div id="mainSection" class="hidden">
@@ -61,12 +62,13 @@ HTML_CONTENT = """
                 <span id="userInfo" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></span>
             </div>
 
-            <div id="dynamicRows" class="space-y-2"></div>
+            <div id="dynamicRows" class="space-y-2">
+                </div>
 
             <button id="submitBtn" onclick="submitAll()" class="w-full samsco-blue text-white py-4 mt-6 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all">일괄 전송하기</button>
             
-            <div class="mt-8 border-t pt-4">
-                <h3 class="font-bold text-gray-500 mb-3 text-[10px] uppercase tracking-widest px-1">최근 전송 내역</h3>
+            <div class="mt-8">
+                <h3 class="font-bold text-gray-600 mb-3 text-xs uppercase tracking-widest px-1">최근 내역</h3>
                 <div id="historyList" class="space-y-2"></div>
             </div>
         </div>
@@ -74,23 +76,23 @@ HTML_CONTENT = """
 
     <script>
         let currentUser = "";
-        let validStatus = [false, false, false, false, false];
-        let searchTimers = [null, null, null, null, null]; // 디바운싱용 타이머
+        let validStatus = [false, false, false, false, false]; // 각 줄의 품번 유효성 체크
         const scriptUrl = "SCRIPT_URL_PLACEHOLDER";
         const userCredentials = USER_DATA_PLACEHOLDER;
 
+        // 5줄 입력칸 생성 (너비 최적화)
         const rowsDiv = document.getElementById('dynamicRows');
         for(let i=1; i<=5; i++) {
             rowsDiv.innerHTML += `
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-gray-300 w-3">${i}</span>
-                        <input type="text" placeholder="품번" oninput="handleInput(${i-1}, this)" 
-                            class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-all">
+                        <span class="text-[10px] font-bold text-gray-300">${i}</span>
+                        <input type="text" placeholder="품번" oninput="checkPart(this, ${i-1})" 
+                            class="part-input w-[130px] p-2 border-2 rounded-lg text-sm font-bold uppercase outline-none transition-colors">
                         <input type="number" placeholder="수량" 
-                            class="qty-input w-[70px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
+                            class="qty-input w-[80px] p-2 border-2 rounded-lg text-sm font-bold outline-none flex-1">
                     </div>
-                    <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1.5 ml-7 font-medium truncate">4자리 이상 입력 시 조회</div>
+                    <div id="info-${i-1}" class="text-[11px] text-gray-400 mt-1 ml-6 font-medium truncate">품번을 입력하세요.</div>
                 </div>
             `;
         }
@@ -99,88 +101,73 @@ HTML_CONTENT = """
             const id = document.getElementById('userId').value;
             const pw = document.getElementById('userPw').value;
             if(userCredentials[id] && userCredentials[id][0] === pw) {
-                // "관리자" 뒤에 "님"을 붙여서 표시
                 currentUser = userCredentials[id][1];
-                document.getElementById('userInfo').innerText = currentUser + "님";
+                document.getElementById('userInfo').innerText = currentUser;
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('mainSection').classList.remove('hidden');
-            } else { alert("정보가 일치하지 않습니다."); }
+            } else { alert("로그인 정보를 확인하세요."); }
         }
 
-        function handleInput(idx, el) {
-            // 기존 타이머 취소 (디바운싱: 오타 수정 중 서버 호출 방지)
-            clearTimeout(searchTimers[idx]);
+        async function checkPart(el, idx) {
             const val = el.value.trim();
-            const infoDiv = document.getElementById(\`info-\${idx}\`);
-
-            if(val.length >= 4) {
-                infoDiv.innerText = "조회 중...";
-                // 0.5초 뒤에 조회 실행
-                searchTimers[idx] = setTimeout(() => {
-                    checkPart(val, idx, el);
-                }, 500);
+            const infoDiv = document.getElementById(`info-${idx}`);
+            
+            if(val.length >= 8) {
+                try {
+                    const res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
+                    const infoText = await res.text();
+                    
+                    if(infoText.includes("❌")) {
+                        el.classList.add('error-border');
+                        el.classList.remove('valid-border');
+                        infoDiv.innerText = infoText;
+                        infoDiv.style.color = "#ef4444";
+                        validStatus[idx] = false;
+                    } else {
+                        el.classList.add('valid-border');
+                        el.classList.remove('error-border');
+                        infoDiv.innerText = infoText;
+                        infoDiv.style.color = "#16a34a";
+                        validStatus[idx] = true;
+                    }
+                } catch(e) { infoDiv.innerText = "통신 오류"; }
             } else {
                 el.classList.remove('error-border', 'valid-border');
-                infoDiv.innerText = "4자리 이상 입력 시 조회";
+                infoDiv.innerText = "8자리 이상 입력...";
                 infoDiv.style.color = "#94a3b8";
                 validStatus[idx] = false;
-                updateSubmitButton();
-            }
-        }
-
-        async function checkPart(val, idx, el) {
-            const infoDiv = document.getElementById(\`info-\${idx}\`);
-            try {
-                const res = await fetch(scriptUrl + "?type=getInfo&part_number=" + val);
-                const infoText = await res.text();
-                
-                if(infoText.includes("❌")) {
-                    el.classList.add('error-border');
-                    el.classList.remove('valid-border');
-                    infoDiv.innerText = infoText;
-                    infoDiv.style.color = "#ef4444";
-                    validStatus[idx] = false;
-                } else {
-                    el.classList.add('valid-border');
-                    el.classList.remove('error-border');
-                    infoDiv.innerText = infoText;
-                    infoDiv.style.color = "#16a34a";
-                    validStatus[idx] = true;
-                }
-            } catch(e) { 
-                infoDiv.innerText = "통신오류 (URL 확인)"; 
-                infoDiv.style.color = "#ef4444";
             }
             updateSubmitButton();
         }
 
+        // 유효하지 않은 품번이 있으면 전송 버튼 비활성화
         function updateSubmitButton() {
             const parts = document.querySelectorAll('.part-input');
             let hasInvalid = false;
             parts.forEach((input, idx) => {
-                const val = input.value.trim();
-                if(val.length > 0 && !validStatus[idx]) hasInvalid = true;
+                if(input.value.trim().length > 0 && !validStatus[idx]) hasInvalid = true;
             });
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = hasInvalid;
-            btn.style.opacity = hasInvalid ? "0.4" : "1";
+            document.getElementById('submitBtn').disabled = hasInvalid;
+            document.getElementById('submitBtn').style.opacity = hasInvalid ? "0.5" : "1";
         }
 
         async function submitAll() {
             const parts = document.querySelectorAll('.part-input');
             const qtys = document.querySelectorAll('.qty-input');
-            let items = [];
+            let targets = [];
 
             for(let i=0; i<parts.length; i++) {
                 if(parts[i].value.trim() && qtys[i].value.trim()) {
-                    items.push({p: parts[i].value.trim(), q: qtys[i].value.trim(), idx: i});
+                    targets.push({p: parts[i].value, q: qtys[i].value, idx: i});
                 }
             }
-            if(items.length === 0) return;
 
+            if(targets.length === 0) return;
+
+            // 화면 락(Lock) 시작
             document.getElementById('overlay').style.display = 'flex';
 
-            for(const item of items) {
+            for(const item of targets) {
                 const uid = Date.now() + "-" + item.idx;
                 await fetch(scriptUrl, {
                     method: 'POST', mode: 'no-cors',
@@ -191,13 +178,12 @@ HTML_CONTENT = """
                 addHistory(item.p, item.q, uid);
             }
 
-            parts.forEach((p, idx) => {
-                p.value = ''; qtys[idx].value = '';
-                document.getElementById(\`info-\${idx}\`).innerText = "4자리 이상 입력 시 조회";
-                p.classList.remove('valid-border', 'error-border');
-            });
+            // 입력칸 초기화
+            parts.forEach((p, idx) => { p.value = ''; qtys[idx].value = ''; document.getElementById(`info-${idx}`).innerText = "품번을 입력하세요."; p.classList.remove('valid-border'); });
             validStatus = [false, false, false, false, false];
             updateSubmitButton();
+
+            // 화면 락 해제 및 알림
             document.getElementById('overlay').style.display = 'none';
             showToast();
         }
@@ -211,17 +197,16 @@ HTML_CONTENT = """
         function addHistory(part, qty, uid) {
             const list = document.getElementById('historyList');
             const id = 'hist-' + uid;
-            list.insertAdjacentHTML('afterbegin', \`
-                <div id="\${id}" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm animate-pulse">
-                    <span class="font-bold text-slate-700">\${part} <span class="text-gray-400 font-normal">(\${qty}개)</span></span>
-                    <button onclick="cancelItem('\${uid}', '\${id}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button>
+            list.insertAdjacentHTML('afterbegin', `
+                <div id="${id}" class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border text-[11px] shadow-sm">
+                    <span class="font-bold">${part} <span class="text-gray-400 font-normal">(${qty}개)</span></span>
+                    <button onclick="cancelItem('${uid}', '${id}')" class="text-red-400 font-bold hover:bg-red-50 px-2 py-1 rounded">취소</button>
                 </div>
-            \`);
-            setTimeout(() => { document.getElementById(id).classList.remove('animate-pulse'); }, 1000);
+            `);
         }
 
         async function cancelItem(uid, divId) {
-            if(!confirm("해당 항목을 취소하시겠습니까?")) return;
+            if(!confirm("취소하시겠습니까?")) return;
             await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: "cancel", uid: uid }) });
             document.getElementById(divId).innerHTML = "<span class='text-gray-300 italic px-2'>취소됨</span>";
         }
