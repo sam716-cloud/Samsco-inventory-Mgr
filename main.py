@@ -13,6 +13,7 @@ GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzD-ov-FfjzzRbxDekE
 USERS = {
     "admin": ["1234", "관리자"],
     "임성민": ["1296", "임성민"]
+    
 }
 
 ITEM_MASTER = {}
@@ -75,10 +76,11 @@ HTML_CONTENT = """
 
     <div class="max-w-md mx-auto p-3">
         <div id="loginSection" class="bg-white mt-10 p-8 rounded-2xl shadow-xl border border-gray-100">
-            <h1 class="text-2xl font-black text-center text-blue-900 mb-8 tracking-tighter uppercase">Samsco Login</h1>
+            <h1 class="text-2xl font-black text-center text-blue-900 mb-0 italic tracking-tighter uppercase">Samsco Login</h1>
+            <h1 class="text-[18px] font-black text-center text-green-600 mb-5 italic tracking-tighter uppercase">창고 입고 등록 시스템</h1>
             <input type="text" id="userId" placeholder="아이디" class="w-full p-4 mb-3 border rounded-xl focus:ring-2 focus:ring-blue-500">
             <input type="password" id="userPw" placeholder="비밀번호" class="w-full p-4 mb-8 border rounded-xl focus:ring-2 focus:ring-blue-500">
-            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all">접속하기</button>
+            <button onclick="login()" class="w-full samsco-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all">시스템 접속</button>
         </div>
 
         <div id="mainSection" class="hidden">
