@@ -128,7 +128,8 @@ HTML_CONTENT = """
                         <div class="flex items-center border rounded-md bg-gray-50 overflow-hidden">
                             <button onclick="adjustQty(${i-1}, -1)" class="px-2 py-1 text-gray-400 font-bold border-r hover:bg-gray-100">-</button>
                             <input type="number" id="qty-${i-1}" placeholder="0" min="1" max="5000"
-                            oninput="if(this.value > 5000) this.value = 5000; if(this.value < 0) this.value = 1;"
+                            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value > 5000) this.value = 5000;"
                             class="qty-input w-[35px] py-1 text-[13px] font-bold text-center outline-none bg-transparent">
                             <button onclick="adjustQty(${i-1}, 1)" class="px-2 py-1 text-gray-400 font-bold border-l hover:bg-gray-100">+</button>
                         </div>
