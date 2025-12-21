@@ -48,7 +48,8 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samsco 창고 입고 등록 시스템</title>
+    <title>Samsco 창고 입고 등록 시스템(시작 시 30초 소요) </title>
+    <meta property="og:image" content="https://lh3.googleusercontent.com/u/0/d/1n8K6BSMCrjGWm5-9HFWA0tHNoANQ_RMT">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
