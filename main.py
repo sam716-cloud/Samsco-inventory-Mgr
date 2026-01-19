@@ -12,8 +12,8 @@ GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzD-ov-FfjzzRbxDekE
 # 2. 로그인 사용자 정보
 USERS = {
     "admin": ["1234", "관리자"],
-    "임성민": ["1296", "임성민"]
-    "정재열": ["4743", "정재열"]
+    "임성민": ["1296", "임성민"],
+    "정재열": ["4743", "정재열"],
     "이성훈": ["0645", "이성훈"]
 
     
